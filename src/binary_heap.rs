@@ -1098,6 +1098,24 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
         self.rebuild_tail(start);
     }
 
+    /// Retains only the elements specified by the predicate.
+    ///
+    /// In other words, remove all elements `e` for which `f(&e)` returns
+    /// `false`. The elements are visited in unsorted (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use std::collections::BinaryHeap;
+    ///
+    /// let mut heap = BinaryHeap::from([-10, -5, 1, 2, 4, 13]);
+    ///
+    /// heap.retain(|x| x % 2 == 0); // only keep even numbers
+    ///
+    /// assert_eq!(heap.into_sorted_vec(), [-10, 2, 4])
+    /// ```
     // #[stable(feature = "binary_heap_retain", since = "1.70.0")]
     pub fn retain<F>(&mut self, mut f: F)
     where
