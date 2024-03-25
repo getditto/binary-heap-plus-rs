@@ -1138,6 +1138,47 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
             keep
         });
     }
+
+    /// Removes the first element specified by the predicate.
+    ///
+    /// In other words, remove the first element `e` for which `f(&e)` returns
+    /// `true`. The elements are visited in unsorted (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use binary_heap_plus::BinaryHeap;
+    ///
+    /// let mut heap = BinaryHeap::from([-10, -5, 1, 2, 4, 13]);
+    ///
+    /// heap.remove_once(|x| *x == -5); // remove -5
+    ///
+    /// assert_eq!(heap.into_sorted_vec(), [-10, 1, 2, 4, 13])
+    /// ```
+    pub fn remove_once<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let mut guard = RebuildOnDrop {
+            rebuild_from: self.len(),
+            heap: self,
+        };
+        let mut i = 0;
+
+        for e in &guard.heap.data {
+            let remove = f(e);
+
+            if remove && i < guard.rebuild_from {
+                guard.rebuild_from = i;
+                guard.heap.data.swap_remove(i);
+                return;
+            }
+
+            i += 1;
+        }
+    }
 }
 
 impl<T, C> BinaryHeap<T, C> {
