@@ -1179,6 +1179,50 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
             i += 1;
         }
     }
+
+    /// Repalce the first element specified by the predicate with the given
+    /// `item`.
+    ///
+    /// In other words, replace the first element `e` for which `f(&e)` returns
+    /// `true` with element `item`. The elements are visited in unsorted
+    /// (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use binary_heap_plus::BinaryHeap;
+    ///
+    /// let mut heap = BinaryHeap::from([-10, -5, 1, 2, 4, 13]);
+    ///
+    /// heap.replace_once(|x| *x == -5, -3); // replace -5 with -3
+    /// heap.replace_once(|x| *x == 2, 13); // replace 2 with 13
+    ///
+    /// assert_eq!(heap.into_sorted_vec(), [-10, -3, 1, 4, 13, 13])
+    /// ```
+    pub fn replace_once<F>(&mut self, mut f: F, item: T)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let mut guard = RebuildOnDrop {
+            rebuild_from: self.len(),
+            heap: self,
+        };
+        let mut i = 0;
+
+        for e in &mut guard.heap.data {
+            let replace = f(e);
+
+            if replace && i < guard.rebuild_from {
+                guard.rebuild_from = i;
+                *e = item;
+                return;
+            }
+
+            i += 1;
+        }
+    }
 }
 
 impl<T, C> BinaryHeap<T, C> {
