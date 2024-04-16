@@ -1177,7 +1177,7 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
         }
     }
 
-    /// Repalce the first element specified by the predicate with the given
+    /// Replaces the first element specified by the predicate with the given
     /// `item`.
     ///
     /// In other words, replace the first element `e` for which `f(&e)` returns
