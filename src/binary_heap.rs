@@ -1167,10 +1167,10 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
         };
         let mut i = 0;
 
-        for e in &guard.heap.data {
+        for (i, e) in guard.heap.data.iter().enumerate() {
             let remove = f(e);
 
-            if remove && i < guard.rebuild_from {
+            if remove {
                 guard.rebuild_from = i;
                 guard.heap.data.swap_remove(i);
                 return;
