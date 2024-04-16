@@ -1165,7 +1165,6 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
             rebuild_from: self.len(),
             heap: self,
         };
-        let mut i = 0;
 
         for (i, e) in guard.heap.data.iter().enumerate() {
             let remove = f(e);
@@ -1175,8 +1174,6 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
                 guard.heap.data.swap_remove(i);
                 return;
             }
-
-            i += 1;
         }
     }
 
@@ -1209,18 +1206,15 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
             rebuild_from: self.len(),
             heap: self,
         };
-        let mut i = 0;
 
-        for e in &mut guard.heap.data {
+        for (i, e) in guard.heap.data.iter_mut().enumerate() {
             let replace = f(e);
 
-            if replace && i < guard.rebuild_from {
+            if replace {
                 guard.rebuild_from = i;
                 *e = item;
                 return;
             }
-
-            i += 1;
         }
     }
 }
