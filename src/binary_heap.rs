@@ -422,6 +422,17 @@ impl<T: fmt::Debug, C> fmt::Debug for BinaryHeap<T, C> {
     }
 }
 
+struct RebuildOnDrop<'a, T, C: Compare<T>> {
+    heap: &'a mut BinaryHeap<T, C>,
+    rebuild_from: usize,
+}
+
+impl<T, C: Compare<T>> Drop for RebuildOnDrop<'_, T, C> {
+    fn drop(&mut self) {
+        self.heap.rebuild_tail(self.rebuild_from);
+    }
+}
+
 impl<T, C: Compare<T> + Default> BinaryHeap<T, C> {
     /// Generic constructor for `BinaryHeap` from [`Vec`].
     ///
@@ -1085,6 +1096,126 @@ impl<T, C: Compare<T>> BinaryHeap<T, C> {
         self.data.append(&mut other.data);
 
         self.rebuild_tail(start);
+    }
+
+    /// Retains only the elements specified by the predicate.
+    ///
+    /// In other words, remove all elements `e` for which `f(&e)` returns
+    /// `false`. The elements are visited in unsorted (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use std::collections::BinaryHeap;
+    ///
+    /// let mut heap = BinaryHeap::from([-10, -5, 1, 2, 4, 13]);
+    ///
+    /// heap.retain(|x| x % 2 == 0); // only keep even numbers
+    ///
+    /// assert_eq!(heap.into_sorted_vec(), [-10, 2, 4])
+    /// ```
+    // #[stable(feature = "binary_heap_retain", since = "1.70.0")]
+    pub fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        // rebuild_start will be updated to the first touched element below, and the rebuild will
+        // only be done for the tail.
+        let mut guard = RebuildOnDrop {
+            rebuild_from: self.len(),
+            heap: self,
+        };
+        let mut i = 0;
+
+        guard.heap.data.retain(|e| {
+            let keep = f(e);
+            if !keep && i < guard.rebuild_from {
+                guard.rebuild_from = i;
+            }
+            i += 1;
+            keep
+        });
+    }
+
+    /// Removes the first element specified by the predicate.
+    ///
+    /// In other words, remove the first element `e` for which `f(&e)` returns
+    /// `true`. The elements are visited in unsorted (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use binary_heap_plus::BinaryHeap;
+    ///
+    /// let mut heap = BinaryHeap::from([-10, -5, 1, 2, 4, 13]);
+    ///
+    /// heap.remove_once(|x| *x == -5); // remove -5
+    ///
+    /// assert_eq!(heap.into_sorted_vec(), [-10, 1, 2, 4, 13])
+    /// ```
+    pub fn remove_once<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let mut guard = RebuildOnDrop {
+            rebuild_from: self.len(),
+            heap: self,
+        };
+
+        for (i, e) in guard.heap.data.iter().enumerate() {
+            let remove = f(e);
+
+            if remove {
+                guard.rebuild_from = i;
+                guard.heap.data.swap_remove(i);
+                return;
+            }
+        }
+    }
+
+    /// Replaces the first element specified by the predicate with the given
+    /// `item`.
+    ///
+    /// In other words, replace the first element `e` for which `f(&e)` returns
+    /// `true` with element `item`. The elements are visited in unsorted
+    /// (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use binary_heap_plus::BinaryHeap;
+    ///
+    /// let mut heap = BinaryHeap::from([-10, -5, 1, 2, 4, 13]);
+    ///
+    /// heap.replace_once(|x| *x == -5, -3); // replace -5 with -3
+    /// heap.replace_once(|x| *x == 2, 13); // replace 2 with 13
+    ///
+    /// assert_eq!(heap.into_sorted_vec(), [-10, -3, 1, 4, 13, 13])
+    /// ```
+    pub fn replace_once<F>(&mut self, mut f: F, item: T)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let mut guard = RebuildOnDrop {
+            rebuild_from: self.len(),
+            heap: self,
+        };
+
+        for (i, e) in guard.heap.data.iter_mut().enumerate() {
+            let replace = f(e);
+
+            if replace {
+                guard.rebuild_from = i;
+                *e = item;
+                return;
+            }
+        }
     }
 }
 
